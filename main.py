@@ -20,6 +20,7 @@ select_from_ing = list(ing_valid[ing_valid.values > 100].index)
 nlp = spacy.load("en_core_web_sm")
 
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
+server = app.server
 
 app.layout = dbc.Container([
     html.Div(
@@ -442,5 +443,5 @@ def cost(record):
 
 
 if __name__ == '__main__':
-    app.run_server(port=8885, debug=True)
+    app.run_server(debug=True)
 
