@@ -119,6 +119,7 @@ app.layout = dbc.Container([
     html.Div(id='showRecipeNutrition'),
     dcc.Store(id='AllRecords'),
     dcc.Store(id='selected_recipe'),
+    dcc.Store(id='selected_recipe_nutrition')
     #dcc.Store(id='SelectedRecords'),
 
 ])
@@ -288,6 +289,7 @@ def RandomSelection(data):
 
 
 @app.callback(Output('selected_recipe', 'data'),
+              Output('selected_recipe_nutrition', 'data'),
               Input('selectRecipe', 'n_clicks'),
               State('titles_datatable', 'selected_rows'),
               State('titles_datatable', 'data'),
@@ -298,8 +300,8 @@ def select_Recipe(n_click, row, data):
         raise PreventUpdate
     else:
         print('recipe is selected')
-        print(data[row[0]]['id'])
-        return get_recipe_info(data[row[0]]['id'])
+        #print(data[row[0]]['id'])
+        return get_recipe_info(data[row[0]]['id']), get_recipe_nutrition(data[row[0]]['id'])
 
 
 @app.callback(Output('showDetails', 'children'),
@@ -332,7 +334,7 @@ def show_recipe_details(data):
         html.Br(),
         html.H4('Instructions:'),
         html.P(Instructions),
-        html.H4('Ingredients'),
+        html.H4('Ingredients:'),
         dash_table.DataTable(
             id='recipeIngredients',
             data=Ing_table.to_dict('records'),
@@ -349,29 +351,40 @@ def show_recipe_details(data):
     return output
 
 @app.callback(Output('showRecipeNutrition', 'children'),
-              Input('selected_recipe', 'data')
+              Input('selected_recipe_nutrition', 'data')
               )
 def show_recipe_nutrition (data):
-    recipe_servings = data['servings']
-    recipe_Ingredients = [item['name'] for item in data['extendedIngredients']]
-    amounts = [item['amount'] for item in data['extendedIngredients']]
-    units = [item['unit'] / recipe_servings for item in data['extendedIngredients']]
+    recipe_nutrition_table = pd.DataFrame(data['bad'])
+    print(recipe_nutrition_table)
+    output = html.Div([
+        html.H4('Nutrition Facts of selected recipe:'),
+        dash_table.DataTable(
+            id='recipeNutrition',
+            data=recipe_nutrition_table.to_dict('records'),
+            columns=[{"name": "Nutrition", "id": "title"},
+                     {"name": "Amount", "id": "amount"},
+                     {"name": "% Daily Value", "id": "percentOfDailyNeeds"}],
+        ),
+        html.Br(),
+        html.Br(),
+        html.Br(),
+        html.Br(),
+    ])
 
-    Ing_table = pd.DataFrame({'Item': recipe_Ingredients, 'Amount': amounts, 'Unit': units}).set_index('Item')
-    for item in recipe_Ingredients:
-        pass
+    return output
 
 
 
 
 
-    return "here is the recipe nutritions"
-
-
-
-
-
-
+def get_recipe_nutrition(number):
+    url = "https://spoonacular-recipe-food-nutrition-v1.p.rapidapi.com/recipes/" + str(number) + "/nutritionWidget.json"
+    headers = {
+        "X-RapidAPI-Host": "spoonacular-recipe-food-nutrition-v1.p.rapidapi.com",
+        "X-RapidAPI-Key": "b987c6e289mshcc810c6710e59b5p10b23fjsn53359729f096"
+    }
+    response = requests.request("GET", url, headers=headers)
+    return response.json()
 
 
 
