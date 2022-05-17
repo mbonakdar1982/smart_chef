@@ -47,6 +47,7 @@ app.layout = dbc.Container([
     html.Br(),
     html.Hr(),
     html.H2('Nutrition assistant'),
+    html.P('Select the nutrient of interest'),
     dcc.Dropdown(id='components', options=sorted(select_from_ing), multi=False),
     dbc.Button(
         children="Search Ingredients",
@@ -96,11 +97,7 @@ app.layout = dbc.Container([
         id="calorie",
         type='text',
     ),
-    html.Div('Total price:'),
-    dcc.Input(
-        id="price",
-        type='text',
-    ),
+
     html.Br(),
     dbc.Button(
         children="Submit",
@@ -119,6 +116,7 @@ app.layout = dbc.Container([
     html.Hr(),
     html.Div(id='results'),
     html.Div(id='showDetails'),
+    html.Div(id='showRecipeNutrition'),
     dcc.Store(id='AllRecords'),
     dcc.Store(id='selected_recipe'),
     #dcc.Store(id='SelectedRecords'),
@@ -135,6 +133,8 @@ def search_ingred(n_click, components):
     if n_click is None:
         raise PreventUpdate
     else:
+        component_unit = index.set_index('component').loc[components, 'unit_name']
+        print(component_unit)
         max_amount = max(ingredients[ingredients['component'] == components]['amount'])
         selected_ingredients = ingredients[(ingredients['component'] == components) & (
                     ingredients['amount'] > max_amount / 4)].sort_values('amount', ascending=False)
@@ -165,8 +165,8 @@ def search_ingred(n_click, components):
                 id='ing_datatable',
                 data=ings_df.to_dict('records'),
                 columns=[{"name":"Suggested ingredient", "id":"ingredient"},
-                         {"name":"Mean", "id":"mean"},
-                         {"name":"standard deviation", "id":"stdev"}],
+                         {"name":"Amount per 100 gr (" + component_unit + ")", "id":"mean"},
+                         ],
                 row_selectable='multi',
                 selected_rows=[],
             ),
@@ -247,7 +247,7 @@ def searchRecipe(n_click, food, ingredients_include, ingredients_exclude, diet, 
 @app.callback(Output('results', 'children'),
               Input('AllRecords', 'data'))
 def RandomSelection(data):
-    SelectedRecords = titleSelection(data, min(10, len(data)))
+    SelectedRecords = titleSelection(data, min(20, len(data)))
     titles = []
     ids = []
 
@@ -263,7 +263,6 @@ def RandomSelection(data):
             }
         ),
         html.H2('The following recipes match your criteria'),
-
         dash_table.DataTable(
             id='titles_datatable',
             data=pd.DataFrame({'title':titles, 'id':ids}).to_dict('records'),
@@ -328,6 +327,9 @@ def show_recipe_details(data):
         html.H4('Total preparation time:'),
         html.P(str(preparationTime) + " minutes"),
         html.Br(),
+        html.H4('Total Servings:'),
+        html.P(servings),
+        html.Br(),
         html.H4('Instructions:'),
         html.P(Instructions),
         html.H4('Ingredients'),
@@ -344,10 +346,26 @@ def show_recipe_details(data):
         html.Br(),
 
     ])
-
-
-
     return output
+
+@app.callback(Output('showRecipeNutrition', 'children'),
+              Input('selected_recipe', 'data')
+              )
+def show_recipe_nutrition (data):
+    recipe_servings = data['servings']
+    recipe_Ingredients = [item['name'] for item in data['extendedIngredients']]
+    amounts = [item['amount'] for item in data['extendedIngredients']]
+    units = [item['unit'] / recipe_servings for item in data['extendedIngredients']]
+
+    Ing_table = pd.DataFrame({'Item': recipe_Ingredients, 'Amount': amounts, 'Unit': units}).set_index('Item')
+    for item in recipe_Ingredients:
+        pass
+
+
+
+
+
+    return "here is the recipe nutritions"
 
 
 
@@ -394,9 +412,8 @@ def get_recipe(food, ingredients_include, ingredients_exclude, diet, cuisine, ca
         querystring["offset"] = str(o)
         response = requests.request("GET", url, headers=headers, params=querystring)
         AllRecords.extend(response.json()['results'])
-
-
     return AllRecords
+
 
 def titleSelection(titleList, n):
     return random.sample(titleList, n)
