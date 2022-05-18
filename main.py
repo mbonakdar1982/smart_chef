@@ -135,7 +135,7 @@ def search_ingred(n_click, components):
         raise PreventUpdate
     else:
         component_unit = index.set_index('component').loc[components, 'unit_name']
-        print(component_unit)
+        #print(component_unit)
         max_amount = max(ingredients[ingredients['component'] == components]['amount'])
         selected_ingredients = ingredients[(ingredients['component'] == components) & (
                     ingredients['amount'] > max_amount / 4)].sort_values('amount', ascending=False)
@@ -251,10 +251,12 @@ def RandomSelection(data):
     SelectedRecords = titleSelection(data, min(20, len(data)))
     titles = []
     ids = []
-
+    prepTimes = []
     for record in SelectedRecords:
         titles.append(record['title'])
         ids.append(record['id'])
+        prepTimes.append(record['readyInMinutes'])
+    selected_df = pd.DataFrame({'title':titles, 'id':ids, 'prepTime':prepTimes}).sort_values(by='prepTime')
 
     return html.Div([
         html.Img(
@@ -266,8 +268,8 @@ def RandomSelection(data):
         html.H2('The following recipes match your criteria'),
         dash_table.DataTable(
             id='titles_datatable',
-            data=pd.DataFrame({'title':titles, 'id':ids}).to_dict('records'),
-            columns=[{"name": "Recipe Title", "id": "title"}],
+            data=selected_df.to_dict('records'),
+            columns=[{"name": "Recipe Title", "id": "title"}, {"name":"Preparation Time (min)", "id":"prepTime"}],
             row_selectable='single',
             selected_rows=[],
         ),
@@ -296,10 +298,10 @@ def RandomSelection(data):
 )
 def select_Recipe(n_click, row, data):
     if n_click is None:
-        print('no click')
+        #print('no click')
         raise PreventUpdate
     else:
-        print('recipe is selected')
+        #print('recipe is selected')
         #print(data[row[0]]['id'])
         return get_recipe_info(data[row[0]]['id']), get_recipe_nutrition(data[row[0]]['id'])
 
@@ -355,7 +357,7 @@ def show_recipe_details(data):
               )
 def show_recipe_nutrition (data):
     recipe_nutrition_table = pd.DataFrame(data['bad'])
-    print(recipe_nutrition_table)
+    #print(recipe_nutrition_table)
     output = html.Div([
         html.H4('Nutrition Facts of selected recipe:'),
         dash_table.DataTable(
@@ -416,6 +418,7 @@ def get_recipe(food, ingredients_include, ingredients_exclude, diet, cuisine, ca
         "diet":diet,
         "cuisine":cuisine,
         "maxCalories":calorie,
+        "addRecipeInformation": True,
     }
     response = requests.request("GET", url, headers=headers, params=querystring)
     totalResults = response.json()['totalResults']
