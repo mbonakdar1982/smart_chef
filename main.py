@@ -138,7 +138,7 @@ def getNutritionHist(n_click, component):
         raise PreventUpdate
     else:
         amounts = ingredients[ingredients['component'] == component]
-        fig = px.histogram(amounts, x="amount", marginal="rug")
+        fig = px.histogram(amounts, x="amount", template='plotly')
 
     return [
         html.P('This diagram shows the distribution for the amount of {} in mg/100 gr of different ingredients in our database:'.format(component)),
