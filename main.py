@@ -1,4 +1,6 @@
 import dash
+import  plotly.express as px
+
 import pandas as pd
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
@@ -63,6 +65,7 @@ app.layout = dbc.Container([
             "margin": "40px",
         },
     ),
+    html.Div(id='nutritionHist'),
     html.Div(id='suggestedIngreds'),
     html.Br(),
     html.H2('Select your criteria here:'),
@@ -123,6 +126,25 @@ app.layout = dbc.Container([
     #dcc.Store(id='SelectedRecords'),
 
 ])
+
+
+@app.callback(
+    Output('nutritionHist', 'children'),
+    Input('searchIngredients', 'n_clicks'),
+    State('components', 'value')
+)
+def getNutritionHist(n_click, component):
+    if n_click is None:
+        raise PreventUpdate
+    else:
+        amounts = ingredients[ingredients['component'] == component]
+        fig = px.histogram(amounts, x="amount", marginal="rug")
+
+    return [
+        html.P('This diagram shows the distribution for the amount of {} in mg/100 gr of different ingredients in our database:'.format(component)),
+        dcc.Graph(figure=fig),
+    ]
+
 
 @app.callback(
     Output('suggestedIngreds', 'children'),
