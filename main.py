@@ -1,5 +1,5 @@
 import dash
-import  plotly.express as px
+import plotly.express as px
 
 import pandas as pd
 from dash.dependencies import Input, Output, State
@@ -138,7 +138,7 @@ def getNutritionHist(n_click, component):
         raise PreventUpdate
     else:
         amounts = ingredients[ingredients['component'] == component]
-        fig = px.histogram(amounts, x="amount", template='plotly')
+        fig = px.histogram(amounts, x="amount", template='simple_white')
 
     return [
         html.P('This diagram shows the distribution for the amount of {} in mg/100 gr of different ingredients in our database:'.format(component)),
@@ -334,13 +334,16 @@ def show_recipe_details(data):
     Ingredients = [item['name'] for item in data['extendedIngredients']]
     amounts = [item['amount'] for item in data['extendedIngredients']]
     units = [item['unit'] for item in data['extendedIngredients']]
-    Ing_table = pd.DataFrame({'Item':Ingredients, 'Amount':amounts, 'Unit':units})
+    grams = [weight_conversion(item['name'], item['amount'], item['unit']) for item in data['extendedIngredients']]
+
+    Ing_table = pd.DataFrame({'Item':Ingredients, 'Amount':amounts, 'Unit':units, 'Grams':grams})
     preparationTime = data['readyInMinutes']
     servings = data['servings']
     Instructions = data['instructions']
     ImageURL = data['image']
     Title = data['title']
     print(Ing_table)
+    fig = px.pie(Ing_table, values='Grams', names='Item')
     output = html.Div([
         html.Br(),
         html.H2(Title),
@@ -367,12 +370,18 @@ def show_recipe_details(data):
                      {"name": "Unit", "id": "Unit"}],
         ),
         html.Br(),
+        html.H4('Weight Percentage of Ingredients'),
+        dcc.Graph(figure=fig),
         html.Br(),
         html.Br(),
         html.Br(),
 
     ])
     return output
+
+
+
+
 
 @app.callback(Output('showRecipeNutrition', 'children'),
               Input('selected_recipe_nutrition', 'data')
@@ -422,7 +431,19 @@ def get_recipe_info(number):
     response = requests.request("GET", url, headers=headers, params=querystring)
     return response.json()
 
-
+def weight_conversion(item, amount, unit):
+    url = "https://spoonacular-recipe-food-nutrition-v1.p.rapidapi.com/recipes/convert"
+    querystring = {"ingredientName": item, "targetUnit": "grams", "sourceAmount": str(amount), "sourceUnit":unit}
+    headers = {
+        "X-RapidAPI-Key": "b987c6e289mshcc810c6710e59b5p10b23fjsn53359729f096",
+        "X-RapidAPI-Host": "spoonacular-recipe-food-nutrition-v1.p.rapidapi.com"
+    }
+    try:
+        response = requests.request("GET", url, headers=headers, params=querystring)
+        weight = response.json()['targetAmount']
+    except:
+        weight = 0
+    return weight
 
 
 def get_recipe(food, ingredients_include, ingredients_exclude, diet, cuisine, calorie):
